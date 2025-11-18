@@ -1,155 +1,90 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
+import "./App.css";
 
-// URL de tu API PHP (ajústala cuando esté en Render)
-const API_URL = "http://localhost/umb-backend-php/api/";
+// ⚠️ Ajusta la URL de tu backend:
+const API_URL = "const API_URL = https://umb-web-taller-7zj4.onrender.com/";
 
-function App() {
+export default function App() {
   const [tareas, setTareas] = useState([]);
-  const [titulo, setTitulo] = useState("");
+  const [nuevaTarea, setNuevaTarea] = useState("");
 
-  // ------------------------------------------------------------------
-  // GET: Obtener todas las tareas al cargar el componente
-  // ------------------------------------------------------------------
-  const obtenerTareas = async () => {
+  // 📌 Obtener todas las tareas del backend
+  const fetchTareas = async () => {
     try {
-      const res = await fetch(API_URL);
-      const data = await res.json();
+      const response = await fetch(API_URL);
+      const data = await response.json();
       setTareas(data);
     } catch (error) {
-      console.error("Error al obtener tareas:", error);
+      console.error("Error obteniendo tareas:", error);
     }
   };
 
-  useEffect(() => {
-    obtenerTareas();
-  }, []);
-
-  // ------------------------------------------------------------------
-  // POST: Crear nueva tarea
-  // ------------------------------------------------------------------
+  // 📌 Crear una nueva tarea
   const crearTarea = async (e) => {
     e.preventDefault();
-    if (!titulo.trim()) return;
+    if (!nuevaTarea.trim()) return;
 
     try {
-      const res = await fetch(API_URL, {
+      await fetch(API_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ titulo, completada: false }),
+        body: JSON.stringify({ titulo: nuevaTarea }),
       });
 
-      const nueva = await res.json();
-
-      // Actualizar lista
-      setTareas([...tareas, nueva[0]]); // Supabase devuelve array
-      setTitulo("");
+      setNuevaTarea("");
+      fetchTareas();
     } catch (error) {
-      console.error("Error al crear tarea:", error);
+      console.error("Error creando tarea:", error);
     }
   };
 
-  // ------------------------------------------------------------------
-  // PATCH: Marcar tarea como completada
-  // ------------------------------------------------------------------
-  const completarTarea = async (id, estadoActual) => {
-    try {
-      const res = await fetch(API_URL, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id,
-          completada: !estadoActual,
-          titulo: tareas.find((t) => t.id === id).titulo,
-        }),
-      });
-
-      await res.json();
-      obtenerTareas(); // refrescar
-    } catch (error) {
-      console.error("Error al actualizar tarea:", error);
-    }
-  };
-
-  // ------------------------------------------------------------------
-  // DELETE: Eliminar una tarea
-  // ------------------------------------------------------------------
+  // 📌 Eliminar una tarea
   const eliminarTarea = async (id) => {
     try {
-      await fetch(`${API_URL}?id=${id}`, {
-        method: "DELETE",
-      });
-
-      // Actualizar la lista sin recargar
-      setTareas(tareas.filter((t) => t.id !== id));
+      await fetch(`${API_URL}?id=${id}`, { method: "DELETE" });
+      fetchTareas();
     } catch (error) {
-      console.error("Error al eliminar tarea:", error);
+      console.error("Error eliminando tarea:", error);
     }
   };
 
+  // 📌 Inicializar tareas al cargar la app
+  useEffect(() => {
+    fetchTareas();
+  }, []);
+
   return (
-    <div style={{ padding: 20, maxWidth: 600, margin: "auto" }}>
-      <h1>Gestor de Tareas (React + PHP + Supabase)</h1>
+    <div className="container">
+      <div className="card">
+        <h1>Gestión de Tareas</h1>
 
-      {/* Formulario */}
-      <form onSubmit={crearTarea} style={{ marginBottom: 20 }}>
-        <input
-          type="text"
-          placeholder="Nueva tarea"
-          value={titulo}
-          onChange={(e) => setTitulo(e.target.value)}
-          style={{
-            padding: 10,
-            width: "70%",
-            marginRight: 10,
-            fontSize: "16px",
-          }}
-        />
-        <button type="submit" style={{ padding: "10px 20px", fontSize: 16 }}>
-          Añadir
-        </button>
-      </form>
+        {/* Formulario para añadir tareas */}
+        <form className="form" onSubmit={crearTarea}>
+          <input
+            type="text"
+            placeholder="Escribe una nueva tarea..."
+            value={nuevaTarea}
+            onChange={(e) => setNuevaTarea(e.target.value)}
+          />
+          <button type="submit">Añadir</button>
+        </form>
 
-      {/* Lista */}
-      <ul style={{ listStyle: "none", padding: 0 }}>
-        {tareas.map((t) => (
-          <li
-            key={t.id}
-            style={{
-              padding: 10,
-              marginBottom: 10,
-              background: "#f4f4f4",
-              borderRadius: 5,
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <span>
-              <input
-                type="checkbox"
-                checked={t.completada}
-                onChange={() => completarTarea(t.id, t.completada)}
-                style={{ marginRight: 10 }}
-              />
-              {t.titulo}
-            </span>
-
-            <button
-              onClick={() => eliminarTarea(t.id)}
-              style={{
-                background: "red",
-                color: "white",
-                border: "none",
-                padding: 5,
-              }}
-            >
-              X
-            </button>
-          </li>
-        ))}
-      </ul>
+        {/* Lista de tareas */}
+        <ul className="lista">
+          {tareas.length === 0 ? (
+            <p className="no-tareas">No hay tareas todavía.</p>
+          ) : (
+            tareas.map((t) => (
+              <li key={t.id}>
+                <span>{t.titulo}</span>
+                <button className="delete" onClick={() => eliminarTarea(t.id)}>
+                  ✖
+                </button>
+              </li>
+            ))
+          )}
+        </ul>
+      </div>
     </div>
   );
 }
-
-export default App;
